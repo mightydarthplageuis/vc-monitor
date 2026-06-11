@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VC Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="tab active" data-page="links-page">Links</div>
+    <div class="tab" data-page="settings-page">Settings</div>
+  </header>
+
+  <main>
+    <section id="links-page" class="page active">
+      <h2>Add a search to monitor</h2>
+      <div class="row">
+        <div style="flex: 2; min-width: 320px;">
+          <label for="link-url">Vestiaire Collective page URL</label>
+          <input type="url" id="link-url" placeholder="https://us.vestiairecollective.com/balenciaga/?...#brand=..." />
+        </div>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="link-europe" />
+        <label for="link-europe" style="margin: 0;">Europe sellers only</label>
+      </div>
+      <div class="row" style="margin-top: 14px;">
+        <button id="add-link-btn">Add link</button>
+      </div>
+      <div class="status-msg" id="add-link-status"></div>
+
+      <h2 style="margin-top: 28px;">Monitored links</h2>
+      <div class="links-list" id="links-list"></div>
+    </section>
+
+    <section id="settings-page" class="page">
+      <h2>Settings</h2>
+
+      <label for="proxy-input">Rotating proxy (host:port:user:pass)</label>
+      <input type="text" id="proxy-input" placeholder="isp.decodo.com:10000:user-xxxx-country-pl:password" />
+      <div class="hint">Used for every request so listings come from rotating IPs.</div>
+
+      <label for="webhook-input">Discord webhook URL</label>
+      <input type="text" id="webhook-input" placeholder="https://discord.com/api/webhooks/..." />
+      <div class="hint">New listings will be posted here as embeds (image, price, location, condition, size).</div>
+
+      <label for="interval-input">Check interval (seconds)</label>
+      <input type="number" id="interval-input" value="60" min="15" style="max-width: 160px;" />
+      <div class="hint">How often each monitored link is checked for new listings.</div>
+
+      <div class="row" style="margin-top: 18px;">
+        <button id="save-settings-btn">Save settings</button>
+      </div>
+      <div class="status-msg" id="settings-status"></div>
+    </section>
+  </main>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

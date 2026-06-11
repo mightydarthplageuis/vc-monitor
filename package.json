@@ -1,0 +1,16 @@
+{
+  "name": "vc-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vestiaire Collective new-listing monitor with Discord notifications",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "https-proxy-agent": "^7.0.5"
+  },
+  "devDependencies": {
+    "electron": "^42.4.0"
+  }
+}
