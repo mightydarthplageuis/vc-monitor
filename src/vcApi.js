@@ -87,6 +87,7 @@ function filtersFromPageUrl(pageUrl) {
 
 function buildPayload(pageUrl, { europeOnly = false, offset = 0, limit = 48 } = {}) {
   const filters = filtersFromPageUrl(pageUrl);
+  filters.sold = false;
   if (europeOnly) filters.country = EU_COUNTRIES;
 
   return {
