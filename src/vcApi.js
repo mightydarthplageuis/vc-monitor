@@ -70,7 +70,12 @@ function filtersFromPageUrl(pageUrl) {
     }
 
     const ids = [...value.matchAll(/#(\d+)/g)].map((m) => m[1]);
-    if (FRAGMENT_FIELD_MAP[key] && ids.length) {
+    if (!ids.length) continue;
+
+    const sizeMatch = key.match(/^size(\d+)$/);
+    if (sizeMatch) {
+      filters[`size${sizeMatch[1]}.id`] = ids;
+    } else if (FRAGMENT_FIELD_MAP[key]) {
       filters[FRAGMENT_FIELD_MAP[key]] = ids;
     }
   }
