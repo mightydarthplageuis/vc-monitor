@@ -18,16 +18,20 @@ function updateLinkInStore(updatedLink) {
 }
 
 async function runOnce(link, settings) {
-  const agent = settings.proxy ? proxy.buildAgent(settings.proxy) : undefined;
+  const proxies = settings.proxies && settings.proxies.length ? settings.proxies : (settings.proxy ? [settings.proxy] : []);
+  const proxyString = proxy.pickRandom(proxies);
+  const proxyUrl = proxy.buildProxyUrl(proxyString);
   const isFirstRun = !Array.isArray(link.seenIds);
   const seen = new Set(link.seenIds || []);
+
+  console.log(`[${link.label || link.id}] checking via proxy ${proxy.maskProxy(proxyString)}`);
 
   try {
     const { status, json } = await vcApi.search(link.url, {
       europeOnly: !!link.europeOnly,
       offset: 0,
       limit: 48,
-      agent,
+      proxyUrl,
     });
 
     const items = json.items || [];
@@ -52,6 +56,8 @@ async function runOnce(link, settings) {
       newCount: isFirstRun ? 0 : newItems.length,
       error: null,
     };
+
+    console.log(`[${link.label || link.id}] status=${status} totalHits=${link.status.totalHits} new=${link.status.newCount}`);
   } catch (e) {
     link.status = {
       lastCheck: new Date().toISOString(),
@@ -60,6 +66,8 @@ async function runOnce(link, settings) {
       newCount: 0,
       error: String(e.message || e),
     };
+
+    console.error(`[${link.label || link.id}] ERROR via proxy ${proxy.maskProxy(proxyString)}: ${link.status.error}`);
   }
 
   updateLinkInStore(link);

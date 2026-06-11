@@ -60,7 +60,8 @@ label {
 
 input[type="text"],
 input[type="number"],
-input[type="url"] {
+input[type="url"],
+textarea {
   width: 100%;
   max-width: 520px;
   padding: 8px 10px;
@@ -69,6 +70,11 @@ input[type="url"] {
   background: #2a2b38;
   color: #fff;
   font-size: 13px;
+}
+
+textarea {
+  font-family: "Consolas", monospace;
+  resize: vertical;
 }
 
 .row {

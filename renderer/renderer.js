@@ -18,15 +18,18 @@ let pollIntervalSeconds = 60;
 
 async function loadSettings() {
   const settings = await window.api.getSettings();
-  proxyInput.value = settings.proxy || "";
+  const proxies = settings.proxies && settings.proxies.length ? settings.proxies : (settings.proxy ? [settings.proxy] : []);
+  proxyInput.value = proxies.join("\n");
   webhookInput.value = settings.discordWebhook || "";
   pollIntervalSeconds = settings.pollIntervalSeconds || 60;
   intervalInput.value = pollIntervalSeconds;
 }
 
 document.getElementById("save-settings-btn").addEventListener("click", async () => {
+  const proxies = proxyInput.value.split("\n").map((s) => s.trim()).filter(Boolean);
   const settings = await window.api.saveSettings({
-    proxy: proxyInput.value.trim(),
+    proxy: proxies[0] || "",
+    proxies,
     discordWebhook: webhookInput.value.trim(),
     pollIntervalSeconds: Math.max(15, parseInt(intervalInput.value, 10) || 60),
   });

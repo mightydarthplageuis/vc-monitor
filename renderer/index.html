@@ -36,9 +36,9 @@
     <section id="settings-page" class="page">
       <h2>Settings</h2>
 
-      <label for="proxy-input">Rotating proxy (host:port:user:pass)</label>
-      <input type="text" id="proxy-input" placeholder="isp.decodo.com:10000:user-xxxx-country-pl:password" />
-      <div class="hint">Used for every request so listings come from rotating IPs.</div>
+      <label for="proxy-input">Rotating proxies (one per line: host:port:user:pass)</label>
+      <textarea id="proxy-input" rows="6" placeholder="isp.decodo.com:10000:user-xxxx-country-pl:password&#10;isp.decodo.com:10000:user-yyyy-country-pl:password"></textarea>
+      <div class="hint">A random proxy from this list is used for each request, so listings come from rotating IPs.</div>
 
       <label for="webhook-input">Discord webhook URL</label>
       <input type="text" id="webhook-input" placeholder="https://discord.com/api/webhooks/..." />

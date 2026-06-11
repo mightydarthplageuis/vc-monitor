@@ -66,7 +66,9 @@ ipcMain.handle("get-links", () => store.loadLinks());
 
 ipcMain.handle("add-link", async (_e, { url, europeOnly }) => {
   const settings = store.loadSettings();
-  const agent = settings.proxy ? proxy.buildAgent(settings.proxy) : undefined;
+  const proxies = settings.proxies && settings.proxies.length ? settings.proxies : (settings.proxy ? [settings.proxy] : []);
+  const proxyString = proxy.pickRandom(proxies);
+  const proxyUrl = proxy.buildProxyUrl(proxyString);
 
   let label = "Custom search";
   let filters = {};
@@ -77,7 +79,7 @@ ipcMain.handle("add-link", async (_e, { url, europeOnly }) => {
   }
 
   try {
-    const { json } = await vcApi.search(url, { europeOnly: !!europeOnly, offset: 0, limit: 1, agent });
+    const { json } = await vcApi.search(url, { europeOnly: !!europeOnly, offset: 0, limit: 1, proxyUrl });
     const item = (json.items || [])[0];
     if (item) {
       const brand = item.brand?.name || "";

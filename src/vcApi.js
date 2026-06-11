@@ -1,5 +1,4 @@
-const https = require("https");
-const zlib = require("zlib");
+const { spawn } = require("child_process");
 
 const SEARCH_URL = "https://search.vestiairecollective.com/v1/product/search";
 
@@ -69,13 +68,16 @@ function filtersFromPageUrl(pageUrl) {
       continue;
     }
 
-    const ids = [...value.matchAll(/#(\d+)/g)].map((m) => m[1]);
-    if (!ids.length) continue;
-
     const sizeMatch = key.match(/^size(\d+)$/);
     if (sizeMatch) {
-      filters[`size${sizeMatch[1]}.id`] = ids;
-    } else if (FRAGMENT_FIELD_MAP[key]) {
+      // Size facet IDs are full tokens like "9#52", not just the trailing number.
+      const sizeIds = value.split("-").filter(Boolean);
+      if (sizeIds.length) filters[`size${sizeMatch[1]}`] = sizeIds;
+      continue;
+    }
+
+    const ids = [...value.matchAll(/#(\d+)/g)].map((m) => m[1]);
+    if (ids.length && FRAGMENT_FIELD_MAP[key]) {
       filters[FRAGMENT_FIELD_MAP[key]] = ids;
     }
   }
@@ -106,59 +108,61 @@ function buildPayload(pageUrl, { europeOnly = false, offset = 0, limit = 48 } = 
   };
 }
 
-function decodeBody(buf, headers) {
-  const encoding = (headers["content-encoding"] || "").toLowerCase();
-  try {
-    if (encoding === "br") return zlib.brotliDecompressSync(buf);
-    if (encoding === "gzip") return zlib.gunzipSync(buf);
-    if (encoding === "deflate") return zlib.inflateSync(buf);
-  } catch {
-    // fall through and return raw buffer
-  }
-  return buf;
-}
+const STATUS_MARKER = "__HTTP_STATUS__";
 
 /**
- * Run a product search for the given page URL.
+ * Run a product search for the given page URL via curl (curl's TLS
+ * fingerprint passes Cloudflare's bot checks, unlike Node's https module).
  * Returns { status, json }.
  */
-function search(pageUrl, { europeOnly = false, offset = 0, limit = 48, agent } = {}) {
+function search(pageUrl, { europeOnly = false, offset = 0, limit = 48, proxyUrl } = {}) {
   return new Promise((resolve, reject) => {
     const payload = buildPayload(pageUrl, { europeOnly, offset, limit });
-    const data = Buffer.from(JSON.stringify(payload));
-    const u = new URL(SEARCH_URL);
+    const data = JSON.stringify(payload);
 
-    const req = https.request(
-      {
-        hostname: u.hostname,
-        path: u.pathname,
-        method: "POST",
-        headers: { ...BASE_HEADERS, "Content-Length": data.length },
-        agent,
-        rejectUnauthorized: false,
-        timeout: 20000,
-      },
-      (res) => {
-        const chunks = [];
-        res.on("data", (c) => chunks.push(c));
-        res.on("end", () => {
-          const buf = Buffer.concat(chunks);
-          const decoded = decodeBody(buf, res.headers);
-          try {
-            const json = JSON.parse(decoded.toString("utf-8"));
-            resolve({ status: res.statusCode, json });
-          } catch (e) {
-            reject(new Error(`Failed to parse response (status ${res.statusCode}): ${e.message}`));
-          }
-        });
+    const args = ["-s", "-S", "-X", "POST", SEARCH_URL];
+    for (const [k, v] of Object.entries(BASE_HEADERS)) {
+      args.push("-H", `${k}: ${v}`);
+    }
+    args.push("--data-binary", "@-", "--compressed", "-k", "--max-time", "25");
+    args.push("-w", `\n${STATUS_MARKER}%{http_code}`);
+    if (proxyUrl) args.push("-x", proxyUrl);
+
+    const proc = spawn("curl", args);
+
+    const stdout = [];
+    const stderr = [];
+    proc.stdout.on("data", (c) => stdout.push(c));
+    proc.stderr.on("data", (c) => stderr.push(c));
+
+    proc.on("error", reject);
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`curl exited with code ${code}: ${Buffer.concat(stderr).toString("utf-8").trim()}`));
+        return;
       }
-    );
 
-    req.on("timeout", () => req.destroy(new Error("Request timed out")));
-    req.on("error", reject);
-    req.write(data);
-    req.end();
+      const out = Buffer.concat(stdout).toString("utf-8");
+      const markerIdx = out.lastIndexOf(STATUS_MARKER);
+      const body = markerIdx === -1 ? out : out.slice(0, markerIdx);
+      const status = markerIdx === -1 ? null : parseInt(out.slice(markerIdx + STATUS_MARKER.length).trim(), 10);
+
+      try {
+        const json = JSON.parse(body);
+        resolve({ status, json });
+      } catch (e) {
+        const titleMatch = body.match(/<title>(.*?)<\/title>/i);
+        const detail = [
+          `status ${status}`,
+          titleMatch ? `title="${titleMatch[1]}"` : null,
+        ].filter(Boolean).join(", ");
+        reject(new Error(`Failed to parse response (${detail})`));
+      }
+    });
+
+    proc.stdin.write(data);
+    proc.stdin.end();
   });
 }
 
-module.exports = { filtersFromPageUrl, buildPayload, search, EU_COUNTRIES };
+module.exports = { filtersFromPageUrl, buildPayload, search, EU_COUNTRIES, BASE_HEADERS };

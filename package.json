@@ -7,9 +7,6 @@
   "scripts": {
     "start": "electron ."
   },
-  "dependencies": {
-    "https-proxy-agent": "^7.0.5"
-  },
   "devDependencies": {
     "electron": "^42.4.0"
   }

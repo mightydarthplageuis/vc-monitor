@@ -9,7 +9,7 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-const DEFAULT_SETTINGS = { proxy: "", discordWebhook: "", pollIntervalSeconds: 60 };
+const DEFAULT_SETTINGS = { proxy: "", proxies: [], discordWebhook: "", pollIntervalSeconds: 60 };
 
 function loadSettings() {
   try {
